@@ -168,7 +168,7 @@ if __name__ == '__main__':
         print("######## convert all bvh files to binary files################")
         bvh_to_binary()
         save_skeleton()
-        print("\nConvert down\n")
+        print("\nConvert done\n")
         print("Divide the dataset to train set and test set, and then argument datasets.")
         splitStyle100TrainTestSet()
     elif(args.train_phase_model==True):
