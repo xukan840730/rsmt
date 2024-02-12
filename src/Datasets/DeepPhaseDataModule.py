@@ -35,16 +35,16 @@ class DeepPhaseProcessor(BasedDataProcessor):
 
     #((V_i in R_i) - (V_(i - 1) in R_(i - 1))) / dt,
     def __call__(self, dict,skeleton,motionDataLoader):
-        offsets, hip_pos, quats = dict["offsets"], dict["hip_pos"], dict["quats"]
+        offsets0, hip_pos0, quats0 = dict["offsets"], dict["hip_pos"], dict["quats"]
         dict = {"gv":[]}
-        if(len(offsets)>1):
-            offsets = np.concatenate(offsets,axis=0)
-            hip_pos = np.concatenate(hip_pos,axis=0)
-            quats = np.concatenate(quats,axis=0)
+        if(len(offsets0)>1):
+            offsets = np.concatenate(offsets0,axis=0)
+            hip_pos = np.concatenate(hip_pos0,axis=0)
+            quats = np.concatenate(quats0,axis=0)
         else:
-            offsets = offsets[0][np.newaxis,...]
-            hip_pos = hip_pos[0][np.newaxis,...]
-            quats = quats[0][np.newaxis,...]
+            offsets = offsets0[0][np.newaxis,...]
+            hip_pos = hip_pos0[0][np.newaxis,...]
+            quats = quats0[0][np.newaxis,...]
         gv = self.transform_single(offsets, hip_pos,quats, skeleton)
         gv = gv.cpu().numpy()
         dict['gv']=gv

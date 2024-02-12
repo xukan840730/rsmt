@@ -48,7 +48,11 @@ class BatchProcessData(torch.nn.Module):#(B,T,J,dim)
     def __init__(self):
         super(BatchProcessData, self).__init__()
     def forward(self,global_rotations,global_positions):
-        ref_vector = torch.cross(global_positions[...,5:6,:]-global_positions[...,1:2,:],torch.tensor([0,1,0],dtype=global_positions.dtype,device=global_positions.device),dim=-1)
+        t0 = global_positions[..., 5:6, :] - global_positions[..., 1:2, :]
+        # t1 = torch.tensor([0, 1, 0], dtype=global_positions.dtype, device=global_positions.device)
+        t1 = torch.tensor([0, 1, 0], dtype=global_positions.dtype, device=global_positions.device).expand_as(t0)  # khanxu: torch.cross doesn't boardcast anymore.
+        # ref_vector = torch.cross(t0, t1, dim=-1)
+        ref_vector = torch.cross(t0, t1)  # t1 is expanded
 
         root_rotation = from_to_1_0_0(ref_vector)
         """ Local Space """
@@ -56,9 +60,20 @@ class BatchProcessData(torch.nn.Module):#(B,T,J,dim)
         local_positions[..., 0] = local_positions[..., 0] - local_positions[..., 0:1, 0]
         local_positions[...,2] = local_positions[..., 2] - local_positions[..., 0:1, 2]
 
-        local_positions = quaternion_apply(root_rotation, local_positions)
-        local_velocities = quaternion_apply(root_rotation[:,:-1], (global_positions[:,1:] - global_positions[:,:-1]))
-        local_rotations = quaternion_multiply(root_rotation, global_rotations)
+        b_use_cpu = True  # khanxu: walk around due to out of CUDA memory.
+        # TODO: verify cpu/cuda have the same result
+        if b_use_cpu:
+            global_positions_cpu = global_positions.cpu()
+            global_rotations_cpu = global_rotations.cpu()
+            local_positions_cpu = local_positions.cpu()
+            root_rotation_cpu = root_rotation.cpu()
+            local_positions = quaternion_apply(root_rotation_cpu, local_positions_cpu).cuda()
+            local_velocities = quaternion_apply(root_rotation_cpu[:, :-1], (global_positions_cpu[:, 1:] - global_positions_cpu[:, :-1])).cuda()
+            local_rotations = quaternion_multiply(root_rotation_cpu, global_rotations_cpu).cuda()
+        else:
+            local_positions = quaternion_apply(root_rotation, local_positions)
+            local_velocities = quaternion_apply(root_rotation[:, :-1], (global_positions[:, 1:] - global_positions[:, :-1]))
+            local_rotations = quaternion_multiply(root_rotation, global_rotations)
 
         local_rotations = quat_to_or6D(local_rotations)
         if torch.isnan(local_rotations).any():

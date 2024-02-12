@@ -222,8 +222,8 @@ class StyleLoader():
         self.train_motions = {}
         self.test_motions = {}
         # 镜像数据集：
-        from src.Datasets.BatchProcessor import BatchMirror
-        batch_mirror = BatchMirror(self.skeleton, 1.)
+        # from src.Datasets.BatchProcessor import BatchMirror
+        # batch_mirror = BatchMirror(self.skeleton, 1.)
         for style in self.style_names[:-10]:
             self.train_motions[style]={}
             self.test_motions[style]={}
@@ -281,8 +281,11 @@ class StyleLoader():
             for content_name in motions[style_name]:
                 dict = motions[style_name][content_name]
                 off, hip, quat = self.loader.load_data(dict['offsets'], dict['hips'], dict['quats'])
+
+                # khanxu: not sure what's these 2 lines for? is motions being used afterwards?
                 dict['offsets'], dict['hip_pos'], dict['quats'] = off, hip, quat
                 del dict['hips']
+
                 o += off
                 h += hip
                 q += quat
