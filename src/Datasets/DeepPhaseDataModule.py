@@ -32,7 +32,7 @@ class DeepPhaseProcessor(BasedDataProcessor):
     def transform_single(self,offsets,hip_pos,local_quat,skeleton):
         gp,gq = self.gpu_fk(offsets,hip_pos,local_quat,skeleton)
         dict = self.process(gq.unsqueeze(0),gp.unsqueeze(0))
-        lp = dict['local_pos'][0]
+        lp = dict['local_pos'][0]  # dict['local_pos'].shape: (1, 75698, 62, 23, 3)
         relative_gv = (lp[:,1:]-lp[:,:-1])/self.dt
         torch.cuda.empty_cache()
 
@@ -57,39 +57,42 @@ class DeepPhaseProcessor(BasedDataProcessor):
         return dict
 
 
-class DeepPhaseProcessorv2(BasedDataProcessor):
-    def __init__(self,dt):
-        super(DeepPhaseProcessorv2, self).__init__()
-        self.process = BatchProcessDatav2()
-        self.dt = dt
-    def gpu_fk(self,offsets,hip_pos,local_quat,skeleton):
-        quat = torch.from_numpy(local_quat).float().cuda()
-        offsets = torch.from_numpy(offsets).float().cuda()
-        hip_pos = torch.from_numpy(hip_pos).float().cuda()
-        gp,gq = skeleton.forward_kinematics(quat,offsets,hip_pos)
+# khanxu: DeepPhaseProcessorv2 not used?
+# class DeepPhaseProcessorv2(BasedDataProcessor):
+#     def __init__(self,dt):
+#         super(DeepPhaseProcessorv2, self).__init__()
+#         self.process = BatchProcessDatav2()
+#         self.dt = dt
+#     def gpu_fk(self,offsets,hip_pos,local_quat,skeleton):
+#         quat = torch.from_numpy(local_quat).float().cuda()
+#         offsets = torch.from_numpy(offsets).float().cuda()
+#         hip_pos = torch.from_numpy(hip_pos).float().cuda()
+#         gp,gq = skeleton.forward_kinematics(quat,offsets,hip_pos)
+#
+#         return gp,gq[...,0:1,:]
+#     def transform_single(self,offsets,hip_pos,local_quat,skeleton):
+#         gp,gq = self.gpu_fk(offsets,hip_pos,local_quat,skeleton)
+#         glb_vel,glb_pos,glb_rot,root_rotatioin = self.process.forward(gq.unsqueeze(0),gp.unsqueeze(0))
+#         relative_gv = glb_vel[0]/self.dt
+#         torch.cuda.empty_cache()
+#         return relative_gv
+#
+#     #((V_i in R_i) - (V_(i - 1) in R_(i - 1))) / dt,
+#     def __call__(self, dict,skeleton,motionDataLoader):
+#         offsets, hip_pos, quats = dict["offsets"], dict["hip_pos"], dict["quats"]
+#         dict = {"gv":[]}
+#         all_std = 0
+#         length = 0
+#         for i in range(len(offsets)):
+#             N,J,D = quats[i].shape
+#             dict["gv"].append(self.transform_single(offsets[i],hip_pos[i],quats[i],skeleton))
+#             all_std = all_std + dict['gv'][-1].std() * dict['gv'][-1].shape[0]
+#             length = length + dict['gv'][-1].shape[0]
+#         all_std = all_std/length
+#         dict['std'] = all_std
+#         return dict
 
-        return gp,gq[...,0:1,:]
-    def transform_single(self,offsets,hip_pos,local_quat,skeleton):
-        gp,gq = self.gpu_fk(offsets,hip_pos,local_quat,skeleton)
-        glb_vel,glb_pos,glb_rot,root_rotatioin = self.process.forward(gq.unsqueeze(0),gp.unsqueeze(0))
-        relative_gv = glb_vel[0]/self.dt
-        torch.cuda.empty_cache()
-        return relative_gv
 
-    #((V_i in R_i) - (V_(i - 1) in R_(i - 1))) / dt,
-    def __call__(self, dict,skeleton,motionDataLoader):
-        offsets, hip_pos, quats = dict["offsets"], dict["hip_pos"], dict["quats"]
-        dict = {"gv":[]}
-        all_std = 0
-        length = 0
-        for i in range(len(offsets)):
-            N,J,D = quats[i].shape
-            dict["gv"].append(self.transform_single(offsets[i],hip_pos[i],quats[i],skeleton))
-            all_std = all_std + dict['gv'][-1].std() * dict['gv'][-1].shape[0]
-            length = length + dict['gv'][-1].shape[0]
-        all_std = all_std/length
-        dict['std'] = all_std
-        return dict
 class DeephaseDatasetWindow(torch.utils.data.Dataset):
     def __init__(self,buffer):
         self.buffer = buffer
