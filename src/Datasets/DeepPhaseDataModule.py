@@ -29,13 +29,13 @@ class DeepPhaseProcessor(BasedDataProcessor):
         gp,gq = skeleton.forward_kinematics(quat,offsets,hip_pos)
 
         return gp,gq[...,0:1,:]
+
     def transform_single(self,offsets,hip_pos,local_quat,skeleton):
         gp,gq = self.gpu_fk(offsets,hip_pos,local_quat,skeleton)
         dict = self.process(gq.unsqueeze(0),gp.unsqueeze(0))
         lp = dict['local_pos'][0]  # dict['local_pos'].shape: (1, 75698, 62, 23, 3)
-        relative_gv = (lp[:,1:]-lp[:,:-1])/self.dt
+        relative_gv = (lp[:,1:]-lp[:,:-1])/self.dt  # (pos_next-pos_prev)/dt
         torch.cuda.empty_cache()
-
         return relative_gv
 
     #((V_i in R_i) - (V_(i - 1) in R_(i - 1))) / dt,
