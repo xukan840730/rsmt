@@ -502,14 +502,14 @@ class DeepPhaseNet(pl.LightningModule):
                                           t_mult=2, policy="cosine", verbose=True)
         return [optimizer], {'scheduler': scheduler, 'interval': 'step', 'frequency': 1}
 '''增加一个loss计算，确保输入和网络训练的时候是一致的'''
-from src.Datasets.DeepPhaseDataModule import DeepPhaseProcessor
+from src.Datasets.DeepPhaseDataModule import DeepPhaseProcessor_cuda
 class Application(nn.Module):
     def __init__(self,Net:DeepPhaseNet,datamodule):
         super(Application, self).__init__()
         self.Net = Net
         self.drawer = Drawer()
         self.module = datamodule
-        self.processor = DeepPhaseProcessor (1/30.)
+        self.processor = DeepPhaseProcessor_cuda (1 / 30.)
         self.window = datamodule.window
     def draw_phase(self,label,input,channel,feature):
         '''input: Batch x M x 1'''

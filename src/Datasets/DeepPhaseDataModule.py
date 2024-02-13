@@ -12,9 +12,9 @@ from src.Datasets.BatchProcessor import BatchProcessData, BatchProcessDatav2
 from src.Datasets.Style100Processor import StyleLoader
 
 
-class DeepPhaseProcessor(BasedDataProcessor):
+class DeepPhaseProcessor_cuda(BasedDataProcessor):
     def __init__(self,dt):
-        super(DeepPhaseProcessor, self).__init__()
+        super(DeepPhaseProcessor_cuda, self).__init__()
         self.process = BatchProcessData()
         self.dt = dt
     def gpu_fk(self,offsets,hip_pos,local_quat,skeleton):
@@ -51,6 +51,46 @@ class DeepPhaseProcessor(BasedDataProcessor):
 
         return dict
 
+
+class DeepPhaseProcessor_cpu(BasedDataProcessor):
+    def __init__(self,dt):
+        super(DeepPhaseProcessor_cpu, self).__init__()
+        self.process = BatchProcessData()
+        self.dt = dt
+
+    def gpu_fk(self, offsets, hip_pos, local_quat, skeleton):
+        quat = torch.from_numpy(local_quat).float()
+        offsets = torch.from_numpy(offsets).float()
+        hip_pos = torch.from_numpy(hip_pos).float()
+        gp,gq = skeleton.forward_kinematics(quat,offsets,hip_pos)
+        return gp,gq[...,0:1,:]
+
+    def transform_single(self, offsets, hip_pos, local_quat, skeleton):
+        gp,gq = self.gpu_fk(offsets,hip_pos,local_quat,skeleton)
+        dict = self.process(gq.unsqueeze(0),gp.unsqueeze(0))
+        lp = dict['local_pos'][0]
+        relative_gv = (lp[:,1:]-lp[:,:-1])/self.dt
+        torch.cuda.empty_cache()
+        return relative_gv
+
+    #((V_i in R_i) - (V_(i - 1) in R_(i - 1))) / dt,
+    def __call__(self, dict, skeleton, motionDataLoader):
+        offsets0, hip_pos0, quats0 = dict["offsets"], dict["hip_pos"], dict["quats"]
+        dict = {"gv":[]}
+        print('DeepPhaseProcessor_cpu list_to_numpy begin')
+        if(len(offsets0)>1):
+            offsets = np.concatenate(offsets0,axis=0)
+            hip_pos = np.concatenate(hip_pos0,axis=0)
+            quats = np.concatenate(quats0,axis=0)
+        else:
+            offsets = offsets0[0][np.newaxis,...]
+            hip_pos = hip_pos0[0][np.newaxis,...]
+            quats = quats0[0][np.newaxis,...]
+        print('DeepPhaseProcessor_cpu list_to_numpy end')
+        gv = self.transform_single(offsets, hip_pos,quats, skeleton)
+        gv = gv.cpu().numpy()  # already cpu()
+        dict['gv']=gv
+        return dict
 
 
 class DeepPhaseProcessorv2(BasedDataProcessor):

@@ -278,7 +278,9 @@ class StyleLoader():
     def _process_dataset(self,motions):
         o, h, q, s = [], [], [], []
         for style_name in motions.keys():
+            # print(style_name)
             for content_name in motions[style_name]:
+                # print(content_name)
                 dict = motions[style_name][content_name]
                 off, hip, quat = self.loader.load_data(dict['offsets'], dict['hips'], dict['quats'])
 

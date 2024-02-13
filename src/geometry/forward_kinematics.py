@@ -80,7 +80,6 @@ def forward_kinematics_quats(local_rotations: torch.Tensor, local_offsets: torch
     global_quats = [global_quats[...,:1,:]]
     #global_positions[...,0:1,:] = hip_positions.clone()
     for level in range(1, len(parents)):
-
         global_positions.append( quaternion_apply(global_quats[parents[level]], local_offsets[..., level:level+1, :]) + global_positions[parents[level]])
         global_quats.append( quaternion_multiply(global_quats[parents[level]], local_rotations[..., level:level+1, :]))
     global_positions = torch.cat(global_positions,dim=-2)

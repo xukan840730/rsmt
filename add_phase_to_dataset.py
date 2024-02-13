@@ -9,9 +9,9 @@ from src.Net.DeepPhaseNet import DeepPhaseNet
 
 class PhaseMotionStyle100Processor(mBaseLoader.BasedDataProcessor):
     def __init__(self,window,dt,model_path:str):
-        from src.Datasets.DeepPhaseDataModule import DeepPhaseProcessor
+        from src.Datasets.DeepPhaseDataModule import DeepPhaseProcessor_cuda
         super(PhaseMotionStyle100Processor, self).__init__()
-        self.processor = DeepPhaseProcessor(dt)
+        self.processor = DeepPhaseProcessor_cuda(dt)
         #self.processor = DeepPhaseProcessorPCA(dt)
         #self.attribute = 'pos'#'gv'
         self.window = window
