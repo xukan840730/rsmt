@@ -137,11 +137,10 @@ def processTransitionPhaseDatasetForStyle100(window,overlap):
     print()
 
 def processDeepPhaseForStyle100(window,overlap):
-    from src.Datasets.DeepPhaseDataModule import DeepPhaseProcessor_cuda, DeepPhaseProcessor_cpu
+    from src.Datasets.DeepPhaseDataModule import DeepPhaseProcessor
     style_loader = StyleLoader()
     window_loader = mBaseLoader.WindowBasedLoader(window,overlap,1)
-    # processor = DeepPhaseProcessor_cuda(1. / 30)  # running out GPU memory
-    processor = DeepPhaseProcessor_cpu(1.0 / 30)
+    processor = DeepPhaseProcessor(1. / 30, b_use_cuda=False)  # running out GPU memory
     style_loader.setup(window_loader, processor)
     style_loader.process_from_binary()
     style_loader.save_train_test_dataset("deep_phase_gv")

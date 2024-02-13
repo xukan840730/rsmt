@@ -60,20 +60,20 @@ class BatchProcessData(torch.nn.Module):#(B,T,J,dim)
         local_positions[..., 0] = local_positions[..., 0] - local_positions[..., 0:1, 0]
         local_positions[...,2] = local_positions[..., 2] - local_positions[..., 0:1, 2]
 
-        b_use_cpu = True  # khanxu: walk around due to out of CUDA memory.
-        # TODO: verify cpu/cuda have the same result
-        if b_use_cpu:
-            global_positions_cpu = global_positions.cpu()
-            global_rotations_cpu = global_rotations.cpu()
-            local_positions_cpu = local_positions.cpu()
-            root_rotation_cpu = root_rotation.cpu()
-            local_positions = quaternion_apply(root_rotation_cpu, local_positions_cpu).cuda()
-            local_velocities = quaternion_apply(root_rotation_cpu[:, :-1], (global_positions_cpu[:, 1:] - global_positions_cpu[:, :-1])).cuda()
-            local_rotations = quaternion_multiply(root_rotation_cpu, global_rotations_cpu).cuda()
-        else:
-            local_positions = quaternion_apply(root_rotation, local_positions)
-            local_velocities = quaternion_apply(root_rotation[:, :-1], (global_positions[:, 1:] - global_positions[:, :-1]))
-            local_rotations = quaternion_multiply(root_rotation, global_rotations)
+        # b_use_cpu = True  # khanxu: walk around due to out of CUDA memory.
+        # # TODO: verify cpu/cuda have the same result
+        # if b_use_cpu:
+        #     global_positions_cpu = global_positions.cpu()
+        #     global_rotations_cpu = global_rotations.cpu()
+        #     local_positions_cpu = local_positions.cpu()
+        #     root_rotation_cpu = root_rotation.cpu()
+        #     local_positions = quaternion_apply(root_rotation_cpu, local_positions_cpu).cuda()
+        #     local_velocities = quaternion_apply(root_rotation_cpu[:, :-1], (global_positions_cpu[:, 1:] - global_positions_cpu[:, :-1])).cuda()
+        #     local_rotations = quaternion_multiply(root_rotation_cpu, global_rotations_cpu).cuda()
+        # else:
+        local_positions = quaternion_apply(root_rotation, local_positions)
+        local_velocities = quaternion_apply(root_rotation[:, :-1], (global_positions[:, 1:] - global_positions[:, :-1]))
+        local_rotations = quaternion_multiply(root_rotation, global_rotations)
 
         local_rotations = quat_to_or6D(local_rotations)
         if torch.isnan(local_rotations).any():
