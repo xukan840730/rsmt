@@ -580,7 +580,7 @@ class Application(nn.Module):
         self.Net.eval()
         with torch.no_grad():
             start = 0
-            length = max(self.window,len(self.dataset)-self.window-10)
+            length = max(self.window,len(self.dataset)-self.window-10)  # khanxu: -10 here seems to be testing code
             input = []
             for i in range(length):
                 input.append(self.dataset[i+start].unsqueeze(0))
