@@ -71,7 +71,8 @@ def add_phase_to_100Style(info):
             print(style+"----------")
             for content in motions[style].keys():
                 print(content)
-                motions[style][content] = phase_processor(motions[style][content],style_loader.skeleton)
+                res = phase_processor(motions[style][content],style_loader.skeleton)
+                motions[style][content] = res
         return motions
     style_loader.train_motions = add_phase(style_loader.train_motions)
     style_loader.test_motions = add_phase(style_loader.test_motions)
