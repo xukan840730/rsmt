@@ -118,7 +118,7 @@ def training_style100():
         app = app.float()
         anim = subsample(anim, 1)
         app.setAnim(anim)
-        app.forward()
+        app.forward_and_plot()
 
         BVH.save_bvh("source.bvh",anim)
 
