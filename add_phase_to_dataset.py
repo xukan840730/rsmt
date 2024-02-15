@@ -1,7 +1,7 @@
 import torch
 
 import src.Datasets.BaseLoader as mBaseLoader
-from src.Datasets.DeepPhaseDataModule import DeephaseDataSet, Style100DataModule
+from src.Datasets.DeepPhaseDataModule import DeephaseDataSet, Style100DataModule, fk_func
 from src.Datasets.Style100Processor import StyleLoader
 from src.Net.DeepPhaseNet import Application
 from src.Net.DeepPhaseNet import DeepPhaseNet
@@ -60,22 +60,49 @@ class PhaseMotionStyle100Processor(mBaseLoader.BasedDataProcessor):
                 phase[key].append(phases[key])
 
         return {"offsets": o, "hip_pos": h, "quats": q, **phase}
+
+
+def test_dump_fk_result(motion_dict, skeleton, output_file_name):
+    import numpy as np
+    import pickle
+
+    offsets0, hip_pos0, quats0 = motion_dict["offsets"], motion_dict["hip_pos"], motion_dict["quats"]
+    if len(offsets0) > 1:
+        offsets = np.concatenate(offsets0, axis=0)
+        hip_pos = np.concatenate(hip_pos0, axis=0)
+        local_quats = np.concatenate(quats0, axis=0)
+    else:
+        offsets = offsets0[0][np.newaxis, ...]
+        hip_pos = hip_pos0[0][np.newaxis, ...]
+        local_quats = quats0[0][np.newaxis, ...]
+
+    t_gp, t_gq = fk_func(skeleton, offsets, hip_pos, local_quats)
+    np_gp = t_gp.cpu().numpy()
+    np_gq = t_gq.cpu().numpy()
+    output = {'gp': np_gp, 'gq': np_gq}
+    f = open(output_file_name, 'wb')
+    pickle.dump(output, f)
+    f.close()
+
+
 def add_phase_to_100Style(info):
     phase_processor = PhaseMotionStyle100Processor(info["window"], info['dt'], info["model_path"])
     bloader = mBaseLoader.StreamBasedLoader(1)
     style_loader = StyleLoader()
     style_loader.setup(bloader,mBaseLoader.BasedDataProcessor())
     style_loader.process_from_binary()
-    def add_phase(motions):
+    def add_phase(motions, b_dump_fk_res):
         for style in motions.keys():
             print(style+"----------")
             for content in motions[style].keys():
                 print(content)
-                res = phase_processor(motions[style][content],style_loader.skeleton)
+                if b_dump_fk_res:
+                    test_dump_fk_result(motions[style][content], style_loader.skeleton, f'{style}_{content}_fk_res.dat')
+                res = phase_processor(motions[style][content], style_loader.skeleton)
                 motions[style][content] = res
         return motions
-    style_loader.train_motions = add_phase(style_loader.train_motions)
-    style_loader.test_motions = add_phase(style_loader.test_motions)
+    style_loader.train_motions = add_phase(style_loader.train_motions, False)
+    style_loader.test_motions = add_phase(style_loader.test_motions, False)
     style_loader.save_dataset("+phase_gv10")
 
     # style_loader.process_from_binary(argument=False)
