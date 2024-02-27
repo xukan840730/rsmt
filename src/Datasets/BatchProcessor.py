@@ -48,7 +48,7 @@ class BatchProcessData(torch.nn.Module):#(B,T,J,dim)
     def __init__(self):
         super(BatchProcessData, self).__init__()
     def forward(self,global_rotations,global_positions):
-        t0 = global_positions[..., 5:6, :] - global_positions[..., 1:2, :]
+        t0 = global_positions[..., 5:6, :] - global_positions[..., 1:2, :]  # right_hip_pos_ws - left_hip_pos_ws
         # t1 = torch.tensor([0, 1, 0], dtype=global_positions.dtype, device=global_positions.device)
         t1 = torch.tensor([0, 1, 0], dtype=global_positions.dtype, device=global_positions.device).expand_as(t0)  # khanxu: torch.cross doesn't boardcast anymore.
         # ref_vector = torch.cross(t0, t1, dim=-1)

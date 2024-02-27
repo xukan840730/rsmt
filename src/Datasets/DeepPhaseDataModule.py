@@ -12,6 +12,15 @@ from src.Datasets.BatchProcessor import BatchProcessData, BatchProcessDatav2
 from src.Datasets.Style100Processor import StyleLoader
 
 
+# khanxu: procedural style fk
+def fk_func(skeleton, offsets, hip_pos, local_quats):
+    t_offsets = torch.from_numpy(offsets).float()
+    t_hip_pos = torch.from_numpy(hip_pos).float()
+    t_quats = torch.from_numpy(local_quats).float()
+    t_gp, t_gq = skeleton.forward_kinematics(t_quats, t_offsets, t_hip_pos)
+    return t_gp, t_gq
+
+
 class DeepPhaseProcessor(BasedDataProcessor):
     def __init__(self, dt, b_use_cuda=True):
         super(DeepPhaseProcessor, self).__init__()

@@ -574,12 +574,13 @@ class Application(nn.Module):
             for key in phase.keys():
                 phase[key] = phase[key].cpu().numpy()
             return phase
-    def forward(self):
+
+    def forward_and_plot(self):
         import matplotlib.pyplot as plt
         self.Net.eval()
         with torch.no_grad():
             start = 0
-            length = max(self.window,len(self.dataset)-self.window-10)
+            length = max(self.window,len(self.dataset)-self.window-10)  # khanxu: -10 here seems to be testing code
             input = []
             for i in range(length):
                 input.append(self.dataset[i+start].unsqueeze(0))
@@ -589,9 +590,9 @@ class Application(nn.Module):
             self.draw_dict(phase)
             self.drawer.show()
 
-            phase = PhaseManifold(phase['A'][:,:,0],phase['S'][:,:,0])
-            U,S,V = pca_lowrank(phase)
-            proj = torch.matmul(phase,V)
+            phase2 = PhaseManifold(phase['A'][:,:,0],phase['S'][:,:,0])
+            U,S,V = pca_lowrank(phase2)
+            proj = torch.matmul(phase2, V)
             proj = proj[:,:2]
             c = np.arange(0,proj.shape[0],step=1.)
             plt.scatter(proj[:,0],proj[:,1],c=c)

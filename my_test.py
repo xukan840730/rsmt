@@ -14,5 +14,13 @@ def test1():
     print(relative_gv)
 
 
+def test2():
+    import pickle
+    f = open('output/fk_res_01/Aeroplane_BR_fk_res.dat', 'rb')
+    dict = pickle.load(f)
+    f.close()
+
+
 if __name__ == '__main__':
-    test1()
+    # test1()
+    test2()
