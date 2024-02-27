@@ -182,9 +182,9 @@ def training_style100_phase():
         output = copy.deepcopy(source)
 
         output.hip_pos, output.quats = app.forward(t=2., x=0.)
-        BVH.save_bvh("test_net.bvh", output)
+        BVH.save_bvh("test_net__2.bvh", output)
         output.hip_pos, output.quats = app.get_source()
-        BVH.save_bvh("source.bvh", output)
+        BVH.save_bvh("source__2.bvh", output)
         torch.save(model, ckpt_path + "/m_save_model_" + str(args.epoch))
 
 if __name__ == '__main__':

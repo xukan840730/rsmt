@@ -84,6 +84,8 @@ def create_common_states(prefix:str):
         "logger":tb_logger
     }
     return args,trainer_dict,resume_from_checkpoint,load_ckpt_path
+
+
 def training_style100():
     from src.Datasets.StyleVAE_DataModule import StyleVAE_DataModule
     from src.Datasets.Style100Processor import StyleLoader
