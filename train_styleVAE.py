@@ -149,9 +149,9 @@ def training_style100():
         app.setSource(src_motion)
         output = copy.deepcopy(source)
         output.hip_pos, output.quats = app.forward(seed=3000,encoding=True)
-        BVH.save_bvh("test_net.bvh", output)
+        BVH.save_bvh(f"test_net_{args.version}.bvh", output)
         source.hip_pos, source.quats = app.get_source()
-        BVH.save_bvh("source.bvh", source)
+        BVH.save_bvh(f"source_output_{args.version}.bvh", source)
         torch.save(model, ckpt_path + "/m_save_model_" + str(args.epoch))
 
 
