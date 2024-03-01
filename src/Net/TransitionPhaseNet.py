@@ -647,6 +647,7 @@ class TransitionNet_phase(pl.LightningModule):
 
         return [optimizer]
 
+
 from src.Datasets.StyleVAE_DataModule import StyleVAE_DataModule
 class Application_phase(nn.Module):
     def __init__(self, net: TransitionNet_phase, data_module: StyleVAE_DataModule):
@@ -656,8 +657,8 @@ class Application_phase(nn.Module):
         self.data_loader = data_module.loader
         self.src_batch = None
         self.target_batch = None
-
         self.skeleton = data_module.skeleton
+
     def transform_batch(self,motion,label):
         batch = [[],label]
         batch[0] = [[motion[0],motion[1],motion[2]]]
@@ -669,6 +670,7 @@ class Application_phase(nn.Module):
         batch[0][0].append(phase)
         batch = self.data_module.transfer_mannual(batch,0,use_phase=True,use_sty=False)
         return batch
+
     def transform_anim(self, anim, label):
         batch = [[], label]
         batch[0] = [[anim.quats, anim.offsets, anim.hip_pos]]
@@ -686,8 +688,6 @@ class Application_phase(nn.Module):
             self.src_batch = self.transform_anim(anim, 0)
         self.offsets = self.src_batch['offsets']
         self.tangent = find_secondary_axis(self.offsets)
-
-
 
     def setTarget(self, anim):
         if (type(anim) == tuple):

@@ -29,6 +29,7 @@ def detect_nan_par():
 def select_gpu_par():
     return {"accelerator":'gpu', "auto_select_gpus":True, "devices":-1}
 
+
 def create_common_states(prefix:str):
     log_name = prefix+'/'
     '''test upload'''
@@ -86,14 +87,17 @@ def create_common_states(prefix:str):
         "logger":tb_logger
     }
     return args,trainer_dict,load_ckpt_path
-def read_style_bvh(style,content,clip=None):
-    swap_joints = Swap100StyJoints()
-    anim = BVH.read_bvh(os.path.join("MotionData/100STYLE/",style,style+"_"+content+".bvh"),remove_joints=swap_joints)
-    if (clip != None):
-        anim.quats = anim.quats[clip[0]:clip[1], ...]
-        anim.hip_pos = anim.hip_pos[clip[0]:clip[1], ...]
-    anim = subsample(anim,ratio=2)
-    return anim
+
+
+# def read_style_bvh(style,content,clip=None):
+#     swap_joints = Swap100StyJoints()
+#     anim = BVH.read_bvh(os.path.join("MotionData/100STYLE/",style,style+"_"+content+".bvh"),remove_joints=swap_joints)
+#     if (clip != None):
+#         anim.quats = anim.quats[clip[0]:clip[1], ...]
+#         anim.hip_pos = anim.hip_pos[clip[0]:clip[1], ...]
+#     anim = subsample(anim,ratio=2)
+#     return anim
+
 
 def training_style100_phase():
     from src.Datasets.StyleVAE_DataModule import StyleVAE_DataModule
@@ -110,8 +114,6 @@ def training_style100_phase():
         pre_trained = torch.load(pretrained_file)
     else:
         pre_trained = None
-
-
 
     loader = WindowBasedLoader(61, 21, 1)
     dt = 1. / 30.
@@ -182,10 +184,11 @@ def training_style100_phase():
         output = copy.deepcopy(source)
 
         output.hip_pos, output.quats = app.forward(t=2., x=0.)
-        BVH.save_bvh("test_net__2.bvh", output)
+        BVH.save_bvh(f"test_net__transitionNet_output__version_{args.version}.bvh", output)
         output.hip_pos, output.quats = app.get_source()
-        BVH.save_bvh("source__2.bvh", output)
+        BVH.save_bvh(f"source__transitionNet_output__version_{args.version}.bvh", output)
         torch.save(model, ckpt_path + "/m_save_model_" + str(args.epoch))
+
 
 if __name__ == '__main__':
     setup_seed(3407)
