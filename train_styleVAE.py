@@ -89,7 +89,7 @@ def create_common_states(prefix:str):
 def training_style100():
     from src.Datasets.StyleVAE_DataModule import StyleVAE_DataModule
     from src.Datasets.Style100Processor import StyleLoader
-    from src.Net.StyleVAENet import Application,VAEMode
+    from src.Net.StyleVAENet import Application_StyleVAE,VAEMode
     prefix = "StyleVAE2"
     data_set = "style100"
     prefix += "_" + data_set
@@ -141,12 +141,13 @@ def training_style100():
         model = StyleVAENet.load_from_checkpoint(check_file, moe_decoder=None,pose_channels=6,net_mode=net_mode,strict=False)
         model = model.cuda()
         src_motion = data_module.test_set.dataset["HighKnees"][0]
+        print(len(data_module.test_set.dataset["HighKnees"]))
         source = BVH.read_bvh("source_template.bvh")
         '''check if space can produce netural space: encoding=False, style=kick'''
         data_module.mirror = 0
         model = model.cpu()
         model.eval()
-        app = Application(model, data_module)
+        app = Application_StyleVAE(model, data_module)
         app = app.float()
         app.setSource(src_motion)
         output = copy.deepcopy(source)

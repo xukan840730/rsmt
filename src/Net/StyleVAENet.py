@@ -379,9 +379,9 @@ class StyleVAENet(pl.LightningModule):
             return [optimizer]
 
 from src.utils.BVH_mod import find_secondary_axis
-class Application(nn.Module):
+class Application_StyleVAE(nn.Module):
     def __init__(self,net:StyleVAENet,data_module:StyleVAE_DataModule):
-        super(Application, self).__init__()
+        super(Application_StyleVAE, self).__init__()
         self.Net = net
         self.data_module = data_module
         self.src_batch = None
@@ -390,10 +390,10 @@ class Application(nn.Module):
 
     def transform_batch(self, motion, label):
         batch = [[], label]
-        batch[0] = [[motion[0], motion[1], motion[2]]]
-        for i, value in enumerate(batch[0][0]):
+        batch[0] = [[motion[0], motion[1], motion[2]]]  # quats, offsets, hip_pos
+        for i, value in enumerate(batch[0][0]):  # quats, from numpy to tensor
             batch[0][0][i] = torch.from_numpy(value).unsqueeze(0).type(self.Net.dtype).to(self.Net.device)
-        for key in motion[3].keys():
+        for key in motion[3].keys():  # phase, from numpy to tensor
             motion[3][key] = torch.from_numpy(motion[3][key]).unsqueeze(0).type(self.Net.dtype).to(self.Net.device)
         batch[0][0].append(motion[3])
         batch = self.data_module.transfer_mannual(batch, 0, use_phase=True,use_sty=False)
@@ -414,6 +414,7 @@ class Application(nn.Module):
             self.src_batch = self.transform_anim(anim, 0)
         self.offsets = self.src_batch['offsets']
         self.tangent = find_secondary_axis(self.offsets)
+
     def _get_transform_ori_motion(self, batch):
         global_pos = batch['local_pos']
         global_rot = batch['local_rot']

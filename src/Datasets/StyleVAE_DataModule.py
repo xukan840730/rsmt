@@ -66,11 +66,23 @@ class Style100Dataset_phase(torch.utils.data.Dataset):
             sub_motions[i] = [torch.from_numpy(sub_motions[i][j]).unsqueeze(0).cuda() for j in range(3)]+[dict]
         return {"data":sub_motions,'sty':style_id}
 
+    @staticmethod
+    def expand_to_list(motions, key):
+        # return sum([motions[con][key] for con in motions], [])
+        res = []
+        for con in motions:
+            res += motions[con][key]
+        return res
+
     def expand_(self):
+        print('Style100Dataset_phase.expand_() begin')
         for style in self.dataset:
+            print(style)
             motions = self.dataset[style]
-            expand_ = lambda key : sum([motions[con][key] for con in motions],[])
+            expand_ = lambda key : sum([motions[con][key] for con in motions],[])  # khanxu: extract key to append to a list
             q = expand_('quats')
+            q2 = Style100Dataset_phase.expand_to_list(motions, 'quats')
+            assert q == q2
             o = expand_('offsets')
             h = expand_('hip_pos')
             A = expand_("A")
@@ -78,7 +90,19 @@ class Style100Dataset_phase(torch.utils.data.Dataset):
             B = expand_("B")
             F = expand_("F")
 
-            self.dataset[style] = [(q[i],o[i],h[i],{"A":A[i],"S":S[i],"B":B[i],"F":F[i]}) for i in range(len(q))]#
+            assert len(q) == len(o) == len(h) == len(A) == len(S) == len(B) == len(F)
+            if len(q) > 0:
+                print(f'q[0].shape: {q[0].shape}')
+                print(f'o[0].shape: {o[0].shape}')
+                print(f'h[0].shape: {h[0].shape}')
+                print(f'A[0].shape: {A[0].shape}')
+                print(f'S[0].shape: {S[0].shape}')
+                print(f'B[0].shape: {B[0].shape}')
+                print(f'F[0].shape: {F[0].shape}')
+
+            self.dataset[style] = [(q[i],o[i],h[i],{"A":A[i],"S":S[i],"B":B[i],"F":F[i]}) for i in range(len(q))]  # khanxu: it would be nice not to modify input dataset
+
+        print('Style100Dataset_phase.expand_() end!')
 
     def shuffle_(self):
         #self.expand_dataset['data'].clear()
@@ -188,6 +212,7 @@ class StyleVAE_DataModule(pl.LightningDataModule):
 
 
         else:
+            # batch: [ [quats, offsets, hip_pos, {A, S, B, F}], 0 ]  # khanxu: weird input signature
             hip_pos = get_data(batch, 2)
             quat = get_data(batch, 0)
             offsets = get_data(batch, 1)
@@ -225,9 +250,8 @@ class StyleVAE_DataModule(pl.LightningDataModule):
             style_gp = style_gq = None
 
         local_pos, local_rot = self.processor.forward(gp, gq, 10)
-
-
         return {"local_pos": local_pos, "local_rot": local_rot, "offsets": offsets, "label": sty, "phase": phase,'A':A,'S':S,"sty_pos":style_gp,"sty_rot":style_gq}
+
     def on_after_batch_transfer(self, batch, dataloader_idx: int) :
         return self.transfer_mannual(batch,dataloader_idx,self.use_phase,use_sty=self.use_sty)
 

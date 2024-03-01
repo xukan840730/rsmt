@@ -313,7 +313,7 @@ def remove_zero_seq(hip_pos):
     return seq_start
 
 def read_bvh(filename, start=None, end=None, order=None,remove_joints = None,Tpose = -1,remove_gap :float=0.):
-    print(filename)
+    print(f'read_bvh: {filename}')
     """
     Reads a BVH file and extracts animation information.
 
@@ -478,7 +478,7 @@ def save_bvh(filename, anim, names=None, frametime=1.0 / 30.0, order='xyz', posi
             names = ["joint_" + str(i) for i in range(len(anim.parents))]
         else:
             names = anim.names
-    print(filename)
+    print(f'save_bvh: {filename}')
     with open(filename, 'w') as f:
 
         t = ""
