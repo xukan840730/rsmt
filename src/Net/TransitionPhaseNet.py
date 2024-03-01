@@ -568,9 +568,8 @@ class TransitionNet_phase(pl.LightningModule):
             idx = torch.arange(data.shape[0])
         return self.film_generator(data[idx])#,idx
 
-
-
-    def transform_batch_to_VAE(self, batch):
+    @staticmethod
+    def transform_batch_to_VAE(batch):
         local_pos, local_rot = batch['local_pos'], batch['local_rot']
         edge_len = torch.norm(batch['offsets'][:, 1:], dim=-1, keepdim=True)
         return local_pos, quat_to_or6D(local_rot), edge_len,batch['phase']

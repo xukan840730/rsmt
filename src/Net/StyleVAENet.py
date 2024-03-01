@@ -111,6 +111,7 @@ class EmbeddingTwoFrameEncoder(nn.Module):
         latent,mu,log_var = self.mlp(x)
         return latent,mu,log_var
 
+
 class StyleVAENet(pl.LightningModule):
 
     def __init__(self, skeleton, phase_dim:int=20,latent_size = 64,batch_size=64,mode="pretrain",net_mode=VAEMode.SINGLE):
@@ -143,12 +144,16 @@ class StyleVAENet(pl.LightningModule):
         self.sigma = 0.3
         self.initialize = True
 
-    def transform_batch_to_VAE(self, batch):
+    @staticmethod
+    def transform_batch_to_VAE(batch):
         local_pos, local_rot = batch['local_pos'], batch['local_rot']
         edge_len = torch.norm(batch['offsets'][:, 1:], dim=-1, keepdim=True)
         return local_pos, quat_to_or6D(local_rot), edge_len, (batch['phase'])
-    def kl_loss(self, mu, log_var):
+
+    @staticmethod
+    def kl_loss(mu, log_var):
         return -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp()) / np.prod(mu.shape)
+
     def shift_running(self, local_pos, local_rots, phases, As, Ss, contacts, style_code):
         '''pose: N,T,J,9'''
         '''hip: N,T,3'''
@@ -184,7 +189,7 @@ class StyleVAENet(pl.LightningModule):
             embedding_input = torch.cat( (last_rel_pos, next_rel_pos, last_l_v, next_l_v, last_l_rot, next_l_rot), dim=-1)
             latent, mu, log_var = self.embedding_encoder( embedding_input)
             output_mu[:, t - 1] = latent
-            kl_loss = kl_loss + self.kl_loss(mu, log_var)
+            kl_loss = kl_loss + StyleVAENet.kl_loss(mu, log_var)
             step += 1
             pred_pose_, coefficients = self.decoder(latent, condition_no_style, phases[:,t+1])
             pred_l_v, pred_l_rot_v = pred_pose_[..., :len(self.pos_rep_idx) * 3].view(-1, len(self.pos_rep_idx),3), pred_pose_[..., len(self.pos_rep_idx) * 3:].view( -1, self.skeleton.num_joints, 6)
@@ -247,9 +252,10 @@ class StyleVAENet(pl.LightningModule):
         amp_scale = 1.
         loss = {"phase": self.mse_loss(gt_phase*amp_scale,phase*amp_scale),"A":self.mse_loss(gt_A*amp_scale,A*amp_scale),"F":self.mse_loss(gt_F,F),"slerp_phase":self.mse_loss(gt_phase*amp_scale,sphase*amp_scale)}
         return loss
+
     def shared_forward_single(self,batch,base_epoch = 30,edge_mean =21.):
         N = batch['local_pos'].shape[0] // 2
-        local_pos, local_rots, edge_len, phases = self.transform_batch_to_VAE(batch)
+        local_pos, local_rots, edge_len, phases = StyleVAENet.transform_batch_to_VAE(batch)
         A = batch['A']
         S = batch['S']
 
@@ -460,15 +466,15 @@ class Application_StyleVAE(nn.Module):
         from torch._lowrank import pca_lowrank
         self.Net.eval()
         with torch.no_grad():
-            loc_pos, loc_rot, edge_len, phases= self.Net.transform_batch_to_VAE(self.src_batch)
+            loc_pos, loc_rot, edge_len, phases = StyleVAENet.transform_batch_to_VAE(self.src_batch)  # no inference
             A = self.src_batch['A']
             S = self.src_batch['S']
             F = S[:,1:]-S[:,:-1]
             F = self.Net.phase_op.remove_F_discontiny(F)
             F = F / self.Net.phase_op.dt
             torch.random.manual_seed(seed)
-            pred_pos, pred_rot,kl,pred_phase = self.Net.shift_running(loc_pos, loc_rot, phases,A,F, None,
-                                                                                        None)
+            pred_pos, pred_rot,kl,pred_phase = self.Net.shift_running(loc_pos, loc_rot, phases,A,F, None, None)  # run inference
+
             def draw_projection(pred_mu):
                 U, S, V = pca_lowrank(pred_mu)
                 proj = torch.matmul(pred_mu, V)
