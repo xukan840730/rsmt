@@ -180,7 +180,7 @@ def training_style100_phase():
 
         app.setSource(src_motion)
         app.setTarget(target_motion)
-        source = BVH.read_bvh("source.bvh")
+        source = BVH.read_bvh("source_template.bvh")
         output = copy.deepcopy(source)
 
         output.hip_pos, output.quats = app.forward(t=2., x=0.)

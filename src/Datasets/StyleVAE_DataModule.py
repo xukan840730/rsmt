@@ -43,9 +43,6 @@ class Style100Dataset_phase(torch.utils.data.Dataset):
         for i in range(len(self.sizes)):
             self.style_batch_start.append(self.sizes[i]+self.style_batch_start[i])
 
-
-
-        pass
     def get_style_batch_for_train(self,style):
         style_id = self.style_to_idx[style]
         self.style_batch_idx[style_id] += 1
@@ -56,8 +53,6 @@ class Style100Dataset_phase(torch.utils.data.Dataset):
         idx = self.style_batch_idx[style_id]
         item = start_idx+idx
         return self.expand_dataset['data'][item],self.expand_dataset['sty'][item]
-
-
 
     def get_style_batch(self,style,style_id,batch_size):
         motions = self.dataset[style]
@@ -70,6 +65,7 @@ class Style100Dataset_phase(torch.utils.data.Dataset):
             dict = {key:torch.from_numpy(sub_motions[i][3][key]).unsqueeze(0).cuda() for key in sub_motions[i][3].keys()}
             sub_motions[i] = [torch.from_numpy(sub_motions[i][j]).unsqueeze(0).cuda() for j in range(3)]+[dict]
         return {"data":sub_motions,'sty':style_id}
+
     def expand_(self):
         for style in self.dataset:
             motions = self.dataset[style]
@@ -103,14 +99,8 @@ class Style100Dataset_phase(torch.utils.data.Dataset):
             self.expand_dataset['data']+=(sub_motions[:self.sizes[style_id]])
             self.expand_dataset['sty']+=[self.style_ids[style_id] for i in range(self.sizes[style_id])]
 
-
-
-
     def __getitem__(self, item):
-
-
         return self.expand_dataset['data'][item],self.expand_dataset['sty'][item],self.is_train
-
 
     def __len__(self):
         return self.len

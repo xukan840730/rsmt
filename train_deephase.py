@@ -120,7 +120,7 @@ def training_style100():
         app.setAnim(anim)
         app.forward_and_plot()
 
-        BVH.save_bvh("source.bvh",anim)
+        BVH.save_bvh("source_template.bvh",anim)
 
 
 def readBVH(filename,dataset_property):

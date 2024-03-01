@@ -141,7 +141,7 @@ def training_style100():
         model = StyleVAENet.load_from_checkpoint(check_file, moe_decoder=None,pose_channels=6,net_mode=net_mode,strict=False)
         model = model.cuda()
         src_motion = data_module.test_set.dataset["HighKnees"][0]
-        source = BVH.read_bvh("source.bvh")
+        source = BVH.read_bvh("source_template.bvh")
         '''check if space can produce netural space: encoding=False, style=kick'''
         data_module.mirror = 0
         model = model.cpu()
