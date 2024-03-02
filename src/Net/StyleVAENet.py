@@ -421,10 +421,7 @@ class Application_StyleVAE(nn.Module):
         self.offsets = self.src_batch['offsets']
         self.tangent = find_secondary_axis(self.offsets)
 
-    def _get_transform_ori_motion(self, batch):
-        global_pos = batch['local_pos']
-        global_rot = batch['local_rot']
-
+    def _get_transform_ori_motion(self, global_pos, global_rot):
         # global_pos,global_rot = self.skeleton.forward_kinematics(local_rot,self.offsets,global_pos[:,:,0:1,:])
         global_rot = self.skeleton.inverse_pos_to_rot(global_rot, global_pos, self.offsets, self.tangent)
         # lp, lq = self.skeleton.inverse_kinematics((global_rot), (global_pos))
@@ -433,8 +430,9 @@ class Application_StyleVAE(nn.Module):
         return lp[0].cpu().numpy(), lq[0].cpu().numpy()
 
     def get_source(self):
-        batch = {'local_pos':self.src_batch['local_pos'][:,16:46],"local_rot":self.src_batch['local_rot'][:,16:46]}
-        return self._get_transform_ori_motion(batch)
+        local_pos = self.src_batch['local_pos'][:,16:46]
+        local_rot = self.src_batch['local_rot'][:,16:46]
+        return self._get_transform_ori_motion(local_pos, local_rot)
 
     def draw_foot_vel(self, pos, pred_pos):
         import matplotlib.pyplot as plt
@@ -503,13 +501,8 @@ class Application_StyleVAE(nn.Module):
             output_rot = torch.cat((loc_rot[:, :2, ...], output_rot), dim=1)
             output_rot = or6d_to_quat(output_rot)
 
-            batch = {}
-
-            batch['local_rot'] = output_rot#or6d_to_quat(output_rot)
-            batch['local_pos'] = output_pos
             self.draw_foot_vel(loc_pos[:,2:], output_pos)  # khanxu: why loc_pos[:,2:]?
-
-            return self._get_transform_ori_motion(batch)
+            return self._get_transform_ori_motion(output_pos, output_rot)
 
 
 

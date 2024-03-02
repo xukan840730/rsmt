@@ -179,6 +179,7 @@ class Skeleton(object):
         #     gp.append(offset[..., i-1:i, :] + gp[self.parents[i]])
         # gp = torch.cat(gp, dim=-2)
         return gp
+
     def inverse_pos_to_rot(self,joints_global_rotations,joints_global_positions,offsets,tangent):
         edge_len = torch.norm(offsets[:,1:],dim=-1,keepdim=True)
         joints_global_positions = ik.scale_pos_to_bonelen(joints_global_positions,edge_len,self._level_joints,self._level_joints_parents)
