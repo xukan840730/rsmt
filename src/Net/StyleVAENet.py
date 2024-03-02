@@ -441,7 +441,8 @@ class Application_StyleVAE(nn.Module):
         def draw(pos,ax,key_joints):
             foot_vel = ((pos[:, 1:, key_joints] - pos[:, :-1, key_joints]) ** 2).sum(dim=-1).sqrt()
             ax.plot(foot_vel[0, :].cpu())
-        fig,ax = plt.subplots(2,2,figsize=(2*1.5,2*1.))
+        # fig,ax = plt.subplots(2,2,figsize=(2*1.5,2*1.))
+        fig, ax = plt.subplots(2, 2)
         joints = [17,18,21,22]
         ax[0,0].set_xlabel("3")
         draw(pos,ax[0,0],joints[0])
@@ -461,7 +462,7 @@ class Application_StyleVAE(nn.Module):
 
         plt.show()
 
-    def forward(self,seed,encoding=True):
+    def forward_and_plot(self, seed, encoding=True):
         import matplotlib.pyplot as plt
         from torch._lowrank import pca_lowrank
         self.Net.eval()
@@ -473,7 +474,7 @@ class Application_StyleVAE(nn.Module):
             F = self.Net.phase_op.remove_F_discontiny(F)
             F = F / self.Net.phase_op.dt
             torch.random.manual_seed(seed)
-            pred_pos, pred_rot,kl,pred_phase = self.Net.shift_running(loc_pos, loc_rot, phases,A,F, None, None)  # run inference
+            pred_pos, pred_rot, kl, pred_phase = self.Net.shift_running(loc_pos, loc_rot, phases,A,F, None, None)  # run inference
 
             def draw_projection(pred_mu):
                 U, S, V = pca_lowrank(pred_mu)
@@ -486,7 +487,11 @@ class Application_StyleVAE(nn.Module):
 
             draw_projection(phases[0].squeeze(0).flatten(-2,-1))
             loss = {}
+
+            # khanxu: from pred_rot, offsets, pred_hip_pos, calculate global_pos?
             rot_pos = self.Net.rot_to_pos(pred_rot, self.src_batch['offsets'], pred_pos[:, :, 0:1])
+
+            # khanxu: patch pred_pos using global_pos?
             pred_pos[:, :, self.Net.rot_rep_idx] = rot_pos[:, :, self.Net.rot_rep_idx]
             # output_pos,output_rot = pred_pos,pred_rot
             output_pos, output_rot = self.Net.regu_pose(pred_pos, edge_len, pred_rot)
@@ -502,7 +507,7 @@ class Application_StyleVAE(nn.Module):
 
             batch['local_rot'] = output_rot#or6d_to_quat(output_rot)
             batch['local_pos'] = output_pos
-            self.draw_foot_vel(loc_pos[:,2:], output_pos)
+            self.draw_foot_vel(loc_pos[:,2:], output_pos)  # khanxu: why loc_pos[:,2:]?
 
             return self._get_transform_ori_motion(batch)
 

@@ -151,7 +151,7 @@ def training_style100():
         app = app.float()
         app.setSource(src_motion)
         output = copy.deepcopy(source)
-        output.hip_pos, output.quats = app.forward(seed=3000,encoding=True)
+        output.hip_pos, output.quats = app.forward_and_plot(seed=3000, encoding=True)
         BVH.save_bvh(f"test_net__styleVAE_output__version_{args.version}.bvh", output)
         source.hip_pos, source.quats = app.get_source()
         BVH.save_bvh(f"source__styleVAE_output__version_{args.version}.bvh", source)
