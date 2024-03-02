@@ -694,17 +694,16 @@ class Application_phase(nn.Module):
         else:
             self.target_anim = self.transform_anim(anim, 2)
 
-    def _get_transform_ori_motion(self, batch):
-        global_pos = batch['local_pos']
-        global_rot = batch['local_rot']
+    def _get_transform_ori_motion(self, global_pos, global_rot):
         global_rot = self.skeleton.inverse_pos_to_rot(global_rot, global_pos, self.offsets, self.tangent)
         lp, lq = self.skeleton.inverse_kinematics(global_rot, global_pos)
         return lp[0].cpu().numpy(), lq[0].cpu().numpy()
 
     def get_source(self):
-        return self._get_transform_ori_motion(self.src_batch)
+        return self._get_transform_ori_motion(self.src_batch['local_pos'], self.src_batch['local_rot'])
+
     def get_target(self):
-        return self._get_transform_ori_motion(self.target_anim)
+        return self._get_transform_ori_motion(self.target_anim['local_pos'], self.target_anim['local_rot'])
 
     def forward(self,t,x):
         self.Net.schedule_phase = 1.
@@ -740,9 +739,4 @@ class Application_phase(nn.Module):
 
             output_pos = torch.cat((loc_pos[:, :10, ...], output_pos, loc_pos[:, 10 + seq:, ...]), dim=1)
             output_rot = torch.cat((loc_rot[:, :10, ...], output_rot, loc_rot[:, 10 + seq:, ...]), dim=1)
-            batch = {}
-            batch['local_rot'] = or6d_to_quat(output_rot)
-            batch['local_pos'] = output_pos
-            return self._get_transform_ori_motion(batch)
-            # output = self.src
-
+            return self._get_transform_ori_motion(output_pos, or6d_to_quat(output_rot))

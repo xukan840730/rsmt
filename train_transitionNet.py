@@ -174,7 +174,7 @@ def training_style100_phase():
         key = "HighKnees"
         sty_key = "HighKnees"
         cid = 61
-        sid = 4
+        sid = 4  # khanxu: what's sid here?
         src_motion = app.data_module.test_set.dataset[key][cid]
         target_motion = app.data_module.test_set_sty.dataset[sty_key][sid]
 
