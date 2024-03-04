@@ -581,6 +581,7 @@ class Application(nn.Module):
         with torch.no_grad():
             start = 0
             length = max(self.window,len(self.dataset)-self.window-10)  # khanxu: -10 here seems to be testing code
+            # length = max(self.window, len(self.dataset) - self.window - 11)  # this works too.
             input = []
             for i in range(length):
                 input.append(self.dataset[i+start].unsqueeze(0))
