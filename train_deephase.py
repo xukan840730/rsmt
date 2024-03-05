@@ -81,6 +81,31 @@ def read_style_bvh(style,content,clip=None):
     return anim
 
 
+def export_pae_to_onnx(model):
+    model.cpu()  # change model to cpu before exporting
+    model.eval()
+
+    dummy_input = torch.randn((1, 69, 61), requires_grad=True)
+
+    # export the model:
+    # torch.onnx.export(model,
+    #                   dummy_input,
+    #                   "pae.onnx",
+    #                   export_params=True,
+    #                   opset_version=12,
+    #                   do_constant_folding=True,
+    #                   input_names=['input_condition'],
+    #                   output_names=['output_latent', 'output_mu', 'output_logvar'],
+    #                   dynamic_axes={'input_condition': {0: 'batch_size'},
+    #                                 'output_latent': {0: 'batch_size'},
+    #                                 'output_mu': {0: 'batch_size'},
+    #                                 'output_logvar': {0: 'batch_size'}})
+    print(torch.version)
+    a = torch.onnx.dynamo_export(model, dummy_input)
+
+    print('export embedding_encoder to onnx done!')
+
+
 def training_style100():
     args, trainer_dict, resume_from_checkpoint, ckpt_path = create_common_states("deephase_sty")
     '''Create the model'''
@@ -122,6 +147,8 @@ def training_style100():
         app.forward_and_plot()
 
         BVH.save_bvh("source_template.bvh",anim)
+
+        # export_pae_to_onnx(model.model)
 
 
 def readBVH(filename,dataset_property):
