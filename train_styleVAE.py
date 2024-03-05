@@ -158,7 +158,7 @@ def training_style100():
         '''Create the model'''
         style_loader = StyleLoader()
         data_module = StyleVAE_DataModule(style_loader, phase_file + loader.get_postfix_str(),style_file_name=None, dt=dt, batch_size=batch_size, mirror=0.0)  # when apply phase, should avoid mirror
-        model = StyleVAENet(data_module.skeleton,  phase_dim=phase_dim, latent_size=latent_size,batch_size=batch_size,mode='pretrain',net_mode=net_mode)
+        style_vae_net = StyleVAENet(data_module.skeleton,  phase_dim=phase_dim, latent_size=latent_size,batch_size=batch_size,mode='pretrain',net_mode=net_mode)
         if (args.dev_run):
             trainer = Trainer(**trainer_dict, **test_model(),
                               **select_gpu_par(), precision=32, reload_dataloaders_every_n_epochs=1,#gradient_clip_val=1.0,#**detect_nan_par(),
@@ -169,7 +169,7 @@ def training_style100():
             trainer = Trainer(**trainer_dict, max_epochs=10000, reload_dataloaders_every_n_epochs=1,gradient_clip_val=1.0,#**detect_nan_par(),
                               **select_gpu_par(), log_every_n_steps=50,
                               flush_logs_every_n_steps=100)
-        trainer.fit(model, datamodule=data_module)
+        trainer.fit(style_vae_net, datamodule=data_module)
 
     else:
 
@@ -189,16 +189,16 @@ def training_style100():
                     check_file += out[0]
                     print(check_file)
                     break
-        model = StyleVAENet.load_from_checkpoint(check_file, moe_decoder=None,pose_channels=6,net_mode=net_mode,strict=False)
-        model = model.cuda()
+        style_vae_net = StyleVAENet.load_from_checkpoint(check_file, moe_decoder=None,pose_channels=6,net_mode=net_mode,strict=False)
+        style_vae_net = style_vae_net.cuda()
         src_motion = data_module.test_set.dataset["HighKnees"][0]
         print(len(data_module.test_set.dataset["HighKnees"]))
         source = BVH.read_bvh("source_template.bvh")
         '''check if space can produce netural space: encoding=False, style=kick'''
         data_module.mirror = 0
-        model = model.cpu()
-        model.eval()
-        app = Application_StyleVAE(model, data_module)
+        style_vae_net = style_vae_net.cpu()
+        style_vae_net.eval()
+        app = Application_StyleVAE(style_vae_net, data_module)
         app = app.float()
         app.setSource(src_motion)
         output = copy.deepcopy(source)
@@ -206,11 +206,11 @@ def training_style100():
         BVH.save_bvh(f"test_net__styleVAE_output__version_{args.version}.bvh", output)
         source.hip_pos, source.quats = app.get_source()
         BVH.save_bvh(f"source__styleVAE_output__version_{args.version}.bvh", source)
-        torch.save(model, ckpt_path + "/m_save_model_" + str(args.epoch))
+        torch.save(style_vae_net, ckpt_path + "/m_save_model_" + str(args.epoch))
 
         # try export models to onnx
-        export_embedding_encoder_to_onnx(model.embedding_encoder)
-        export_moe_gate_decoder_to_onnx(model.decoder)
+        export_embedding_encoder_to_onnx(style_vae_net.embedding_encoder)
+        export_moe_gate_decoder_to_onnx(style_vae_net.decoder)
 
 
 if __name__ == '__main__':

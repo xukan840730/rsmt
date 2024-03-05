@@ -129,7 +129,7 @@ def training_style100_phase():
         stat = style_loader.load_part_to_binary("motion_statistics")
         mode = "pretrain"
 
-        model = TransitionNet_phase(moe_net, data_module.skeleton, pose_channels=9,stat=stat ,phase_dim=phase_dim,
+        transition_net_phase = TransitionNet_phase(moe_net, data_module.skeleton, pose_channels=9,stat=stat ,phase_dim=phase_dim,
                                dt=dt,mode=mode,pretrained_model=pre_trained,predict_phase=args.predict_phase)
 
         if args.dev_run:
@@ -142,7 +142,7 @@ def training_style100_phase():
             trainer = Trainer(**trainer_dict, max_epochs=10000,reload_dataloaders_every_n_epochs=1,gradient_clip_val=1.0,
                               **select_gpu_par(), log_every_n_steps=50,check_val_every_n_epoch=2,
                               flush_logs_every_n_steps=100)
-        trainer.fit(model, datamodule=data_module)
+        trainer.fit(transition_net_phase, datamodule=data_module)
     else:
 
         style_loader = StyleLoader()
@@ -162,12 +162,12 @@ def training_style100_phase():
                     check_file += out[0]
                     print(check_file)
                     break
-        model = TransitionNet_phase.load_from_checkpoint(check_file, moe_decoder=moe_net, pose_channels=9,phase_dim=phase_dim,
+        transition_net_phase = TransitionNet_phase.load_from_checkpoint(check_file, moe_decoder=moe_net, pose_channels=9,phase_dim=phase_dim,
                                dt=dt,mode='fine_tune',strict=False)
-        model = model.cuda()
+        transition_net_phase = transition_net_phase.cuda()
         data_module.mirror = 0
-        app = Application_phase(model, data_module)
-        model.eval()
+        app = Application_phase(transition_net_phase, data_module)
+        transition_net_phase.eval()
 
         app = app.float()
 
@@ -189,7 +189,7 @@ def training_style100_phase():
         BVH.save_bvh(f"test_net__transitionNet_output__{key}_{sty_key}__version_{args.version}.bvh", output)
         output.hip_pos, output.quats = app.get_source()
         BVH.save_bvh(f"source__transitionNet_output__{key}_{sty_key}__version_{args.version}.bvh", output)
-        torch.save(model, ckpt_path + "/m_save_model_" + str(args.epoch))
+        torch.save(transition_net_phase, ckpt_path + "/m_save_model_" + str(args.epoch))
 
 
 if __name__ == '__main__':
