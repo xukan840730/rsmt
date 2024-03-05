@@ -86,6 +86,57 @@ def create_common_states(prefix:str):
     return args,trainer_dict,resume_from_checkpoint,load_ckpt_path
 
 
+# khanxu: export torch model to onnx
+def export_embedding_encoder_to_onnx(model):
+    # assert isinstance(model, EmbeddingTwoFrameEncoder)
+    model.cpu()  # change model to cpu before exporting
+    model.eval()
+
+    dummy_input = torch.randn((1, 444), requires_grad=True)
+
+    # export the model:
+    torch.onnx.export(model,
+                      dummy_input,
+                      "embedding_two_frame_encoder.onnx",
+                      export_params=True,
+                      opset_version=12,
+                      do_constant_folding=True,
+                      input_names=['input_condition'],
+                      output_names=['output_latent', 'output_mu', 'output_logvar'],
+                      dynamic_axes={'input_condition': {0: 'batch_size'},
+                                    'output_latent': {0: 'batch_size'},
+                                    'output_mu': {0: 'batch_size'},
+                                    'output_logvar': {0: 'batch_size'}})
+    print('export embedding_encoder to onnx done!')
+
+
+def export_moe_gate_decoder_to_onnx(model):
+    # assert isinstance(model, MoeGateDecoder)
+    model.cpu()  # change model to cpu before exporting
+    model.eval()
+
+    input1 = torch.randn((1, 32), requires_grad=True)
+    input2 = torch.randn((1, 231), requires_grad=True)
+    input3 = torch.randn((1, 10, 2), requires_grad=True)
+
+    # export the model:
+    torch.onnx.export(model,
+                      args=(input1, input2, input3),
+                      f='moe_gate_decoder.onnx',
+                      export_params=True,
+                      opset_version=12,
+                      do_constant_folding=True,
+                      input_names=['input_latent', 'input_condition', 'input_phase'],
+                      output_names=['output_pred_pose', 'output_coeffs'],
+                      dynamic_axes={'input_latent': {0: 'batch_size'},
+                                    'input_condition': {0: 'batch_size'},
+                                    'input_phase': {0: 'batch_size'},
+                                    'output_pred_pose': {0: 'batch_size'},
+                                    'output_coeffs': {0: 'batch_size'}, }
+                      )
+    print('export moe_gate_decoder to onnx done!')
+
+
 def training_style100():
     from src.Datasets.StyleVAE_DataModule import StyleVAE_DataModule
     from src.Datasets.Style100Processor import StyleLoader
@@ -156,6 +207,10 @@ def training_style100():
         source.hip_pos, source.quats = app.get_source()
         BVH.save_bvh(f"source__styleVAE_output__version_{args.version}.bvh", source)
         torch.save(model, ckpt_path + "/m_save_model_" + str(args.epoch))
+
+        # try export models to onnx
+        export_embedding_encoder_to_onnx(model.embedding_encoder)
+        export_moe_gate_decoder_to_onnx(model.decoder)
 
 
 if __name__ == '__main__':

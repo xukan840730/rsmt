@@ -80,6 +80,7 @@ def read_style_bvh(style,content,clip=None):
     anim = subsample(anim,ratio=2)
     return anim
 
+
 def training_style100():
     args, trainer_dict, resume_from_checkpoint, ckpt_path = create_common_states("deephase_sty")
     '''Create the model'''
