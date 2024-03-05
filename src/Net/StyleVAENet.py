@@ -200,7 +200,7 @@ class StyleVAENet(pl.LightningModule):
             pred_rot = pred_l_rot_v + last_l_rot
             pred_rot[:, 0:1] = local_rots[:, t + 1, 0:1]
 
-            output_pos[:, t - 1, self.pos_rep_idx] = pred_pos
+            output_pos[:, t - 1, self.pos_rep_idx] = pred_pos  # khanxu: only pos_joints are filled, others are zero
             output_rot[:, t - 1] = pred_rot
             last_g_pos, last_g_rot, last_g_v = pred_pos, pred_rot, pred_g_v
         if (step > 0):

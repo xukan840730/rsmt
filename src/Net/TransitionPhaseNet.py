@@ -712,9 +712,9 @@ class Application_phase(nn.Module):
         # seq = 10
         self.Net.eval()
         with torch.no_grad():
-            loc_pos, loc_rot, edge_len,phases = self.Net.transform_batch_to_VAE(self.src_batch)
-            tar_pos,tar_rot ,_,_= self.Net.transform_batch_to_VAE(self.target_anim)
-            target_style = self.Net.get_film_code(tar_pos,tar_rot)
+            loc_pos, loc_rot, edge_len, phases = self.Net.transform_batch_to_VAE(self.src_batch)
+            tar_pos, tar_rot, _, _ = self.Net.transform_batch_to_VAE(self.target_anim)
+            target_style = self.Net.get_film_code(tar_pos, tar_rot)
 
             A = self.src_batch['A']
             S = self.src_batch['S']

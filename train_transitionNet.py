@@ -108,19 +108,19 @@ def training_style100_phase():
     args, trainer_dict, ckpt_path = create_common_states(prefix)
     moe_net = torch.load(args.moe_model)
 
-    if(args.pretrained==True):
-        from src.utils.locate_model import locate_model
-        pretrained_file = locate_model(ckpt_path+"/",args.epoch)
-        pre_trained = torch.load(pretrained_file)
-    else:
-        pre_trained = None
-
     loader = WindowBasedLoader(61, 21, 1)
     dt = 1. / 30.
     phase_dim = 10
     phase_file = "+phase_gv10"
     style_file_name = phase_file + WindowBasedLoader(120,0,1).get_postfix_str()
-    if (args.test == False):
+    if not args.test:
+        if args.pretrained:
+            from src.utils.locate_model import locate_model
+            pretrained_file = locate_model(ckpt_path + "/", args.epoch)
+            pre_trained = torch.load(pretrained_file)
+        else:
+            pre_trained = None
+
         '''Create the model'''
         style_loader = StyleLoader()
 
@@ -132,7 +132,7 @@ def training_style100_phase():
         model = TransitionNet_phase(moe_net, data_module.skeleton, pose_channels=9,stat=stat ,phase_dim=phase_dim,
                                dt=dt,mode=mode,pretrained_model=pre_trained,predict_phase=args.predict_phase)
 
-        if (args.dev_run):
+        if args.dev_run:
             trainer = Trainer(**trainer_dict, **test_model(),
                               **select_gpu_par(), precision=32,reload_dataloaders_every_n_epochs=1,
                               log_every_n_steps=5, flush_logs_every_n_steps=10,
@@ -173,6 +173,8 @@ def training_style100_phase():
 
         key = "HighKnees"
         sty_key = "HighKnees"
+        # sty_key = "Aeroplane"
+
         cid = 61
         sid = 4  # khanxu: what's sid here?
         src_motion = app.data_module.test_set.dataset[key][cid]
@@ -184,9 +186,9 @@ def training_style100_phase():
         output = copy.deepcopy(source)
 
         output.hip_pos, output.quats = app.forward(t=2., x=0.)
-        BVH.save_bvh(f"test_net__transitionNet_output__version_{args.version}.bvh", output)
+        BVH.save_bvh(f"test_net__transitionNet_output__{key}_{sty_key}__version_{args.version}.bvh", output)
         output.hip_pos, output.quats = app.get_source()
-        BVH.save_bvh(f"source__transitionNet_output__version_{args.version}.bvh", output)
+        BVH.save_bvh(f"source__transitionNet_output__{key}_{sty_key}__version_{args.version}.bvh", output)
         torch.save(model, ckpt_path + "/m_save_model_" + str(args.epoch))
 
 
