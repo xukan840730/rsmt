@@ -154,7 +154,7 @@ class StyleVAENet(pl.LightningModule):
     def kl_loss(mu, log_var):
         return -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp()) / np.prod(mu.shape)
 
-    def shift_running(self, local_pos, local_rots, phases, As, Ss, contacts, style_code):
+    def shift_running(self, local_pos, local_rots, phases):
         '''pose: N,T,J,9'''
         '''hip: N,T,3'''
         '''phases: N,T,M'''
@@ -281,7 +281,7 @@ class StyleVAENet(pl.LightningModule):
         src_F = F[:N]
 
         ########################################################################################
-        pred_pos, pred_rot,kl, pred_phase = self.shift_running(src_pos, src_rots,src_phases, src_A, src_F,None,style_code=src_code)
+        pred_pos, pred_rot,kl, pred_phase = self.shift_running(src_pos, src_rots, src_phases)
         rot_pos = self.rot_to_pos(pred_rot,batch['offsets'][:N],pred_pos[:,:,0:1])
         pred_pos[:,:,self.rot_rep_idx] = rot_pos[:, :, self.rot_rep_idx]
         if (self.stage != "training" or random.random() < 0.1):
@@ -466,13 +466,13 @@ class Application_StyleVAE(nn.Module):
         self.Net.eval()
         with torch.no_grad():
             loc_pos, loc_rot, edge_len, phases = StyleVAENet.transform_batch_to_VAE(self.src_batch)  # no inference
-            A = self.src_batch['A']
-            S = self.src_batch['S']
-            F = S[:,1:]-S[:,:-1]
-            F = self.Net.phase_op.remove_F_discontiny(F)
-            F = F / self.Net.phase_op.dt
+            # A = self.src_batch['A']
+            # S = self.src_batch['S']
+            # F = S[:,1:]-S[:,:-1]
+            # F = self.Net.phase_op.remove_F_discontiny(F)
+            # F = F / self.Net.phase_op.dt
             torch.random.manual_seed(seed)
-            pred_pos, pred_rot, kl, pred_phase = self.Net.shift_running(loc_pos, loc_rot, phases,A,F, None, None)  # run inference
+            pred_pos, pred_rot, kl, pred_phase = self.Net.shift_running(loc_pos, loc_rot, phases)  # run inference
 
             def draw_projection(pred_mu):
                 U, S, V = pca_lowrank(pred_mu)
