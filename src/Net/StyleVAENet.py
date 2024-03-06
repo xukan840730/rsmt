@@ -466,6 +466,14 @@ class Application_StyleVAE(nn.Module):
         self.Net.eval()
         with torch.no_grad():
             loc_pos, loc_rot, edge_len, phases = StyleVAENet.transform_batch_to_VAE(self.src_batch)  # no inference
+
+            loc_pos_np = loc_pos.numpy()
+            loc_rot_np = loc_rot.numpy()
+            phases_np = phases.numpy()
+            np.save('style_vae_net__loc_pos_np.npy', loc_pos_np)
+            np.save('style_vae_net__loc_rot_np.npy', loc_rot_np)
+            np.save('style_vae_net__phases_np.npy', phases_np)
+
             # A = self.src_batch['A']
             # S = self.src_batch['S']
             # F = S[:,1:]-S[:,:-1]
