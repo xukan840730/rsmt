@@ -154,16 +154,19 @@ class StyleVAENet(pl.LightningModule):
     def kl_loss(mu, log_var):
         return -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp()) / np.prod(mu.shape)
 
-    def shift_running(self, local_pos, local_rots, phases):
+    def shift_running(self, in_local_pos, local_rots, phases):
         '''pose: N,T,J,9'''
         '''hip: N,T,3'''
         '''phases: N,T,M'''
         '''style_code: [N,C,T,J| N,C,T,J]'''
-        N, T, n_joints, C = local_pos.shape
-        output_pos = torch.empty(size=(N, T - 2, n_joints, 3), device=local_pos.device)
+        N, T, n_joints, C = in_local_pos.shape
+        output_pos = torch.empty(size=(N, T - 2, n_joints, 3), device=in_local_pos.device)
         output_rot = torch.empty(size=(N, T - 2, n_joints, 6), device=local_rots.device)
         output_mu = torch.empty(size=(N, T - 2, self.latent_size), device=local_rots.device)
-        local_pos = local_pos[:, :, self.pos_rep_idx]
+        local_pos = in_local_pos[:, :, self.pos_rep_idx]
+
+        # loc_pos_np = local_pos.numpy()
+        # np.save('style_vae_net__loc_pos_np_inside.npy', loc_pos_np)
 
         # last_S = Ss[:,0]
         output_phase = torch.empty(size=(N, T - 2, phases.shape[-2], 2), device=phases.device)
@@ -467,12 +470,12 @@ class Application_StyleVAE(nn.Module):
         with torch.no_grad():
             loc_pos, loc_rot, edge_len, phases = StyleVAENet.transform_batch_to_VAE(self.src_batch)  # no inference
 
-            loc_pos_np = loc_pos.numpy()
-            loc_rot_np = loc_rot.numpy()
-            phases_np = phases.numpy()
-            np.save('style_vae_net__loc_pos_np.npy', loc_pos_np)
-            np.save('style_vae_net__loc_rot_np.npy', loc_rot_np)
-            np.save('style_vae_net__phases_np.npy', phases_np)
+            # loc_pos_np = loc_pos.numpy()
+            # loc_rot_np = loc_rot.numpy()
+            # phases_np = phases.numpy()
+            # np.save('style_vae_net__loc_pos_np.npy', loc_pos_np)
+            # np.save('style_vae_net__loc_rot_np.npy', loc_rot_np)
+            # np.save('style_vae_net__phases_np.npy', phases_np)
 
             # A = self.src_batch['A']
             # S = self.src_batch['S']
