@@ -190,7 +190,11 @@ class StyleVAENet(pl.LightningModule):
             hip_l_r = next_l_rot[..., 0:6].clone()
             condition_no_style = torch.cat((last_rel_pos, last_l_v, hip_l_v, last_l_rot, hip_l_r), dim=-1)
             embedding_input = torch.cat( (last_rel_pos, next_rel_pos, last_l_v, next_l_v, last_l_rot, next_l_rot), dim=-1)
-            latent, mu, log_var = self.embedding_encoder( embedding_input)
+
+            # embedding_input_np = embedding_input.numpy()
+            # np.save('style_vae_net__embedding_input_0.npy', embedding_input_np)
+
+            latent, mu, log_var = self.embedding_encoder(embedding_input)
             output_mu[:, t - 1] = latent
             kl_loss = kl_loss + StyleVAENet.kl_loss(mu, log_var)
             step += 1
