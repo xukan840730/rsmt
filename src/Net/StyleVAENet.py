@@ -160,9 +160,9 @@ class StyleVAENet(pl.LightningModule):
         '''phases: N,T,M'''
         '''style_code: [N,C,T,J| N,C,T,J]'''
         N, T, n_joints, C = in_local_pos.shape
-        output_pos = torch.empty(size=(N, T - 2, n_joints, 3), device=in_local_pos.device)
-        output_rot = torch.empty(size=(N, T - 2, n_joints, 6), device=local_rots.device)
-        output_mu = torch.empty(size=(N, T - 2, self.latent_size), device=local_rots.device)
+        output_pos = torch.zeros(size=(N, T - 2, n_joints, 3), device=in_local_pos.device)
+        output_rot = torch.zeros(size=(N, T - 2, n_joints, 6), device=local_rots.device)
+        output_mu = torch.zeros(size=(N, T - 2, self.latent_size), device=local_rots.device)
         local_pos = in_local_pos[:, :, self.pos_rep_idx]
 
         # loc_pos_np = local_pos.numpy()
@@ -190,16 +190,19 @@ class StyleVAENet(pl.LightningModule):
             hip_l_r = next_l_rot[..., 0:6].clone()
             condition_no_style = torch.cat((last_rel_pos, last_l_v, hip_l_v, last_l_rot, hip_l_r), dim=-1)
             embedding_input = torch.cat( (last_rel_pos, next_rel_pos, last_l_v, next_l_v, last_l_rot, next_l_rot), dim=-1)
-
             # embedding_input_np = embedding_input.numpy()
             # np.save('style_vae_net__embedding_input_0.npy', embedding_input_np)
 
             latent, mu, log_var = self.embedding_encoder(embedding_input)
+            # latent_np = latent.numpy()
+            # np.save('style_vae_net__embedding_output_latent_0.npy', latent_np)
+
             output_mu[:, t - 1] = latent
             kl_loss = kl_loss + StyleVAENet.kl_loss(mu, log_var)
             step += 1
             pred_pose_, coefficients = self.decoder(latent, condition_no_style, phases[:,t+1])
-            pred_l_v, pred_l_rot_v = pred_pose_[..., :len(self.pos_rep_idx) * 3].view(-1, len(self.pos_rep_idx),3), pred_pose_[..., len(self.pos_rep_idx) * 3:].view( -1, self.skeleton.num_joints, 6)
+            pred_l_v = pred_pose_[..., :len(self.pos_rep_idx) * 3].view(-1, len(self.pos_rep_idx),3)
+            pred_l_rot_v = pred_pose_[..., len(self.pos_rep_idx) * 3:].view( -1, self.skeleton.num_joints, 6)
             last_l_rot = last_l_rot.view(-1, self.skeleton.num_joints, 6)
             pred_g_v = pred_l_v
             pred_g_v[:, 0] = local_pos[:, t + 1, 0] - last_g_pos[:, 0]
@@ -208,7 +211,13 @@ class StyleVAENet(pl.LightningModule):
             pred_rot[:, 0:1] = local_rots[:, t + 1, 0:1]
 
             output_pos[:, t - 1, self.pos_rep_idx] = pred_pos  # khanxu: only pos_joints are filled, others are zero
+            # output_pos_np = output_pos.numpy()
+            # np.save('style_vae_net__output_pos_0.npy', output_pos_np)
+
             output_rot[:, t - 1] = pred_rot
+            # output_rot_np = output_rot.numpy()
+            # np.save('style_vae_net__output_rot_0.npy', output_rot_np)
+
             last_g_pos, last_g_rot, last_g_v = pred_pos, pred_rot, pred_g_v
         if (step > 0):
             kl_loss = kl_loss / step
