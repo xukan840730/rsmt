@@ -99,6 +99,54 @@ def create_common_states(prefix:str):
 #     return anim
 
 
+def export_target_state_encoder_to_onnx(model):
+    model.cpu()  # change model to cpu before exporting
+    model.eval()
+
+    dummy_input = torch.randn((1, 222), requires_grad=True)
+
+    # export the model:
+    torch.onnx.export(model,
+                      dummy_input,
+                      "target_state_encoder.onnx",
+                      export_params=True,
+                      opset_version=12,
+                      do_constant_folding=True,
+                      input_names=['input_target_state'],
+                      output_names=['output_target_latent'],
+                      dynamic_axes={'input_target_state': {0: 'batch_size'},
+                                    'output_target_latent': {0: 'batch_size'}})
+    print('export target_state_encoder to onnx done!')
+
+
+# failed to export embedding_style model
+def export_embedding_style_to_onnx(model):
+    model.cpu()
+    model.eval()
+
+    # input1 = [torch.randn((1, 111, 512), requires_grad=True)]  # crash the exporter!
+    input1 = torch.randn((1, 1, 111, 512), requires_grad=True)  # crash the exporter!
+    input2 = torch.randn((1, 256), requires_grad=True)
+    input3 = torch.randn((1, 1), requires_grad=True)  # not used,
+    # input4 = torch.zeros([1, 1], dtype=torch.bool)
+    input4 = True
+
+    # export the model:
+    torch.onnx.export(model,
+                      args=(input1, input2, input3, input4),
+                      f='embedding_style.onnx',
+                      export_params=True,
+                      opset_version=12,
+                      do_constant_folding=True,
+                      input_names=['input_style_code', 'input_condition', 'input_pos_encoding', 'input_first'],
+                      output_names=['output_latent'],
+                      dynamic_axes={'input_style_code': {0: 'batch_size'},
+                                    'input_condition': {0: 'batch_size'},
+                                    'output_latent': {0: 'batch_size'} }
+                      )
+    print('export embedding_style to onnx done!')
+
+
 def training_style100_phase():
     from src.Datasets.StyleVAE_DataModule import StyleVAE_DataModule
     from src.Net.TransitionPhaseNet import TransitionNet_phase,Application_phase
@@ -185,11 +233,18 @@ def training_style100_phase():
         source = BVH.read_bvh("source_template.bvh")
         output = copy.deepcopy(source)
 
-        output.hip_pos, output.quats = app.forward(t=2., x=0.)
+        output.hip_pos, output.quats = app.test_forward(t=2., x=0.)
         BVH.save_bvh(f"test_net__transitionNet_output__{key}_{sty_key}__version_{args.version}.bvh", output)
         output.hip_pos, output.quats = app.get_source()
         BVH.save_bvh(f"source__transitionNet_output__{key}_{sty_key}__version_{args.version}.bvh", output)
         torch.save(transition_net_phase, ckpt_path + "/m_save_model_" + str(args.epoch))
+
+        # export onnx models:
+        # export_state_encoder_to_onnx(app.Net.state_encoder)
+        # export_offset_encoder_to_onnx(app.Net.offset_encoder)
+        export_target_state_encoder_to_onnx(app.Net.target_encoder)
+        export_embedding_style_to_onnx(app.Net.embedding_style)
+        # export_lstm_to_onnx(app.Net.LSTMCell)
 
 
 if __name__ == '__main__':

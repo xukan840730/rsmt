@@ -73,6 +73,8 @@ class StateEncoder(nn.Module):
             x = self.layers[i](x)
             x = self.acts[i](x)
         return x
+
+
 class StyleEmbedding(torch.nn.Module):
     def __init__(self,in_channels):
         super(StyleEmbedding, self).__init__()
@@ -88,8 +90,7 @@ class StyleEmbedding(torch.nn.Module):
         x = self.atns[idx](s, x,pos_encoding, first)
         return x
 
-
-    def forward(self, fs, condition,pos_encoding, first):
+    def forward(self, fs, condition, pos_encoding, first):
         '''input: N,C->decoder'''
         '''phase: N,C->gate network'''
         '''x: pose+latent'''
@@ -98,9 +99,8 @@ class StyleEmbedding(torch.nn.Module):
         x = self.linears[0](x)
         x = self.FILM(0,fs[0],x,None,first)
         x = self.act(x)
-
-
         return x
+
 class MoeStylePhasePredictor(nn.Module):
     def __init__(self, rnn_size, phase_dim, num_experts):
         from src.Net.TransitionNet import AdaInNorm2D,ATNBlock
@@ -256,14 +256,18 @@ class TransitionNet_phase(pl.LightningModule):
         self.l1_loss = nn.L1Loss()
         self.mse_loss = nn.MSELoss()
         self.common_operator = CommonOperator(batch_size=32)
+
     def target_encoding(self, target_rots,target_pos, target_v):
-        return self.target_encoder(torch.cat((target_pos.flatten(-2,-1),target_v.flatten(-2,-1),target_rots.flatten(-2,-1)), dim=-1))
+        input_tensor = torch.cat((target_pos.flatten(-2,-1),target_v.flatten(-2,-1),target_rots.flatten(-2,-1)), dim=-1)
+        return self.target_encoder(input_tensor)
 
     def state_encoding(self, pos,vel, rot):
-        return self.state_encoder(torch.cat((pos.flatten(-2,-1),vel.flatten(-2,-1), rot.flatten(-2,-1)), dim=-1))
+        input_tensor = torch.cat((pos.flatten(-2,-1),vel.flatten(-2,-1), rot.flatten(-2,-1)), dim=-1)
+        return self.state_encoder(input_tensor)
 
     def offset_encoding(self, pos, rot):
-        return self.offset_encoder(torch.cat((pos.flatten(-2,-1),rot.flatten(-2,-1)), dim=-1))
+        input_tensor = torch.cat((pos.flatten(-2,-1),rot.flatten(-2,-1)), dim=-1)
+        return self.offset_encoder(input_tensor)
 
     def regu_pose(self, pos, edge_len, rot):
         import src.geometry.inverse_kinematics as ik
@@ -705,7 +709,7 @@ class Application_phase(nn.Module):
     def get_target(self):
         return self._get_transform_ori_motion(self.target_anim['local_pos'], self.target_anim['local_rot'])
 
-    def forward(self,t,x):
+    def test_forward(self, t, x):
         self.Net.schedule_phase = 1.
         self.Net.style_phase = 1.
         seq = self.Net.seq_scheduler.max_seq
