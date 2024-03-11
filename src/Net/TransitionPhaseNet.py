@@ -37,7 +37,7 @@ def eval_sample(model, X, Q,A,S,tar_pos,tar_quat, x_mean, x_std, pos_offset, ske
     F = F / model.phase_op.dt
     phases = model.phase_op.phaseManifold(A, S)
     if(model.predict_phase==True):
-     pred_pos, pred_rot, pred_phase, _,_ = model.shift_running(gp.cuda(), loc_rot.cuda(), phases.cuda(), A.cuda(), F.cuda(), target_style, None,
+        pred_pos, pred_rot, pred_phase, _,_ = model.shift_running(gp.cuda(), loc_rot.cuda(), phases.cuda(), A.cuda(), F.cuda(), target_style, None,
                                                                start_id=10,
                                                                target_id=target_id, length=length,
                                                                phase_schedule=1.)
@@ -97,7 +97,7 @@ class StyleEmbedding(torch.nn.Module):
         # just for sure it has style
         x = condition
         x = self.linears[0](x)
-        x = self.FILM(0,fs[0],x,None,first)
+        x = self.FILM(0, fs, x, None, first)  # was x = self.FILM(0, fs[0], x, None, first). But failed to export to onnx
         x = self.act(x)
         return x
 
@@ -131,7 +131,7 @@ class MoeStylePhasePredictor(nn.Module):
         x = self.linears[0](x)
         x = self.act[0](x)
         x = self.linears[1](x)
-        x = self.FILM(0,fs[0],x,None,first)
+        x = self.FILM(0,fs,x,None,first)  # was x = self.FILM(0,fs[0],x,None,first). But failed to export to onnx
         x = self.act[1](x)
         x = self.linears[2](x)
         x = self.act[2](x)
@@ -277,6 +277,7 @@ class TransitionNet_phase(pl.LightningModule):
 
 
     def shift_running(self, local_pos, local_rots,phases,As,Fs, style_code, noise_per_sequence, start_id, target_id,length,phase_schedule=1.):
+        assert not isinstance(style_code, list)
         from src.Net.TransitionNet import concat
         if not length:
             length = target_id - start_id
@@ -347,7 +348,7 @@ class TransitionNet_phase(pl.LightningModule):
 
             state_latent = self.state_encoding(last_l_pos - last_l_pos[:, 0:1], last_l_v, last_l_rot)
             offset_latent = self.offset_encoding(offset_pos, offset_rot)
-            style_code[0] = style_code[0].unsqueeze(1).repeat(1,start_id-2,1,1).flatten(0,1)
+            style_code = style_code.unsqueeze(1).repeat(1, start_id - 2, 1, 1).flatten(0, 1)  # style_code[0] = style_code[0].unsqueeze(1).repeat(1,start_id-2,1,1).flatten(0,1)
             state_latent = self.embedding_style(style_code, state_latent, None, first=True)
 
             target_latent = target_latent.unsqueeze(1).repeat(1,start_id-2,1).flatten(0,1)
@@ -356,7 +357,7 @@ class TransitionNet_phase(pl.LightningModule):
             state_latent = recover(state_latent)
             offset_latent = recover(offset_latent)
             target_latent = recover(target_latent)
-            style_code[0] = recover(style_code[0])
+            style_code = recover(style_code)  # style_code[0] = recover(style_code[0])
 
             offset_ts = []
             for i in range(1,start_id-1):
@@ -368,7 +369,7 @@ class TransitionNet_phase(pl.LightningModule):
             latent, h_target = multi_concat(state_latent, offset_latent, target_latent, self.embedding, self.embedding512,noise_per_sequence,offset_ts, tmax)
             pre_phase, preA, preS = self.initial_state_predictor(latent)
 
-            style_code[0] = style_code[0][:,0]
+            style_code = style_code[:,0]  # style_code[0] = style_code[0][:,0]
             target_latent = target_latent[:,0]
 
             # prepare for predicting the first frame
@@ -478,6 +479,7 @@ class TransitionNet_phase(pl.LightningModule):
         pred_fv = pred_fv * contact_idx
         contact_loss = pred_fv.sum() / max(contact_num, 1)
         return contact_loss
+
     def shared_forward(self, batch, seq, optimizer=None, d_optimizer=None):
         N = batch['local_pos'].shape[0] #// 2
         style_code = self.get_film_code(batch['sty_pos'][:N], batch['sty_rot'][:N])

@@ -88,7 +88,7 @@ class IAN_FilmGenerator2(nn.Module):
         x = self.act(x)
         y2 = x
         y2 = y2.transpose(1,2)
-        return [y2]
+        return y2  # was return [y2]. But failed to export onnx.
 
 class EmbeddingTwoFrameEncoder(nn.Module):
     def __init__(self,num_joints,num_pos_joints,latent_dims,phase_dims):
